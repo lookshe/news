@@ -403,6 +403,22 @@ class ItemMapperV2 extends NewsMapperV2
     }
 
     /**
+     * Generate an expression for the offset.
+     *
+     * @param bool $oldestFirst Sorting direction
+     *
+     * @return string
+     */
+    private function offsetWhere(bool $oldestFirst): string
+    {
+        if ($oldestFirst === true) {
+            return 'items.id < :offset';
+        }
+
+        return 'items.id > :offset';
+    }
+
+    /**
      * @param string $userId      User identifier
      * @param int    $feedId      Feed identifier
      * @param int    $limit       Max items to retrieve
@@ -424,18 +440,12 @@ class ItemMapperV2 extends NewsMapperV2
     ): array {
         $builder = $this->db->getQueryBuilder();
 
-        if ($oldestFirst === true) {
-            $offsetWhere = $builder->expr()->lt('items.id', ':offset');
-        } else {
-            $offsetWhere = $builder->expr()->gt('items.id', ':offset');
-        }
-
         $builder->select('items.*')
             ->from($this->tableName, 'items')
             ->innerJoin('items', FeedMapperV2::TABLE_NAME, 'feeds', 'items.feed_id = feeds.id')
             ->andWhere('feeds.user_id = :userId')
             ->andWhere('items.feed_id = :feedId')
-            ->andWhere($offsetWhere)
+            ->andWhere($this->offsetWhere($oldestFirst))
             ->setParameter('userId', $userId)
             ->setParameter('feedId', $feedId)
             ->setParameter('offset', $offset)
@@ -486,18 +496,12 @@ class ItemMapperV2 extends NewsMapperV2
             $folderWhere = $builder->expr()->eq('feeds.folder_id', new Literal($folderId), IQueryBuilder::PARAM_INT);
         }
 
-        if ($oldestFirst === true) {
-            $offsetWhere = $builder->expr()->lt('items.id', ':offset');
-        } else {
-            $offsetWhere = $builder->expr()->gt('items.id', ':offset');
-        }
-
         $builder->select('items.*')
             ->from($this->tableName, 'items')
             ->innerJoin('items', FeedMapperV2::TABLE_NAME, 'feeds', 'items.feed_id = feeds.id')
             ->andWhere('feeds.user_id = :userId')
             ->andWhere($folderWhere)
-            ->andWhere($offsetWhere)
+            ->andWhere($this->offsetWhere($oldestFirst))
             ->setParameter('userId', $userId)
             ->setParameter('offset', $offset)
             ->setMaxResults($limit)
@@ -540,17 +544,11 @@ class ItemMapperV2 extends NewsMapperV2
     ): array {
         $builder = $this->db->getQueryBuilder();
 
-        if ($oldestFirst === true) {
-            $offsetWhere = $builder->expr()->lt('items.id', ':offset');
-        } else {
-            $offsetWhere = $builder->expr()->gt('items.id', ':offset');
-        }
-
         $builder->select('items.*')
             ->from($this->tableName, 'items')
             ->innerJoin('items', FeedMapperV2::TABLE_NAME, 'feeds', 'items.feed_id = feeds.id')
             ->andWhere('feeds.user_id = :userId')
-            ->andWhere($offsetWhere)
+            ->andWhere($this->offsetWhere($oldestFirst))
             ->setParameter('userId', $userId)
             ->setParameter('offset', $offset)
             ->setMaxResults($limit)
